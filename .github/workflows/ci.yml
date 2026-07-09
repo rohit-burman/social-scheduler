@@ -1,0 +1,35 @@
+# name: ci
+
+# on:
+#   push:
+#     branches: [main, develop]
+#   pull_request:
+
+# jobs:
+#   web:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: pnpm/action-setup@v4
+#         with:
+#           version: 9
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: 22
+#           cache: pnpm
+#       - run: pnpm install --no-frozen-lockfile
+#       - run: pnpm --filter web lint
+#       - run: pnpm --filter web build
+
+#   api-worker:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.12'
+#       - run: pip install uv
+#       - run: cd apps/api && uv sync
+#       - run: cd apps/api && uv run ruff check .
+#       - run: cd apps/worker && uv sync
+#       - run: cd apps/worker && uv run ruff check .

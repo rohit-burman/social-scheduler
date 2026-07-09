@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: social-scheduler-celery-worker
+  labels:
+    app: social-scheduler-celery-worker
+    component: queue-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: social-scheduler-celery-worker
+  template:
+    metadata:
+      labels:
+        app: social-scheduler-celery-worker
+    spec:
+      containers:
+        - name: celery-worker
+          image: your-registry/social-scheduler-api:latest
+          command:
+            - celery
+            - -A
+            - src.config.celery
+            - worker
+            - --loglevel=info
+            - -Q
+            - publish,default
+          env:
+            - name: CELERY_BROKER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: social-scheduler-config
+                  key: redis_url
+            - name: CELERY_RESULT_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  name: social-scheduler-config
+                  key: redis_url
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: social-scheduler-secrets
+                  key: mongodb_url
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          livenessProbe:
+            exec:
+              command:
+                - celery
+                - -A
+                - src.config.celery
+                - inspect
+                - active
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - celery
+                - -A
+                - src.config.celery
+                - inspect
+                - ping
+            initialDelaySeconds: 20
+            periodSeconds: 5
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: social-scheduler-celery-scheduler
+  labels:
+    app: social-scheduler-celery-scheduler
+    component: queue-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: social-scheduler-celery-scheduler
+  template:
+    metadata:
+      labels:
+        app: social-scheduler-celery-scheduler
+    spec:
+      containers:
+        - name: celery-beat
+          image: your-registry/social-scheduler-api:latest
+          command:
+            - celery
+            - -A
+            - src.config.celery
+            - beat
+            - --loglevel=info
+          env:
+            - name: CELERY_BROKER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: social-scheduler-config
+                  key: redis_url
+            - name: CELERY_RESULT_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  name: social-scheduler-config
+                  key: redis_url
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: social-scheduler-secrets
+                  key: mongodb_url
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi">
