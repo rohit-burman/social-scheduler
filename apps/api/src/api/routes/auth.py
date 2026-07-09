@@ -33,7 +33,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(),auth_service: A
             password=form_data.password
         )
     )
-
     if not user:
         raise HTTPException(status_code=401,detail="Invalid email or password")
 
