@@ -13,7 +13,3 @@ class UserResponse(BaseModel):
     is_active:bool
     created_at:datetime
 
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-

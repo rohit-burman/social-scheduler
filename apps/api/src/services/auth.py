@@ -1,7 +1,8 @@
 from datetime import UTC,datetime
-from src.core.secutity import hash_password,verify_password
+from src.core.security import hash_password,verify_password
 from src.db.repositories import UserRepository
-from src.models.user import UserResponse,UserCreate,LoginRequest
+from src.models.auth import LoginRequest
+from src.models.user import UserResponse,UserCreate
 from typing import Any
 
 

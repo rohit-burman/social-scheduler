@@ -2,10 +2,14 @@ from typing import Annotated, Any
 from fastapi import Depends, HTTPException, status
 from jwt import InvalidTokenError
 from pymongo.asynchronous.database import AsyncDatabase
+from redis.asyncio import Redis
+
 from src.db.mongodb import get_db
+from src.db.redis import get_redis
 from src.db.repositories import UserRepository
 from src.services.auth import AuthService
-from src.core.secutity import oauth2_scheme, decode_access_token
+from src.core.security import oauth2_scheme, decode_access_token
+from src.services.rate_limit import LoginRateLimiter
 
 DatabaseDep = Annotated[AsyncDatabase, Depends(get_db)]
 
@@ -60,3 +64,11 @@ async def get_current_user(token: AccessTokenDep, repo: UserRepoDep) -> dict[str
 
 
 CurrentUserDep = Annotated[dict[str, Any], Depends(get_current_user)]
+
+
+RedisDep = Annotated[Redis,Depends(get_redis)]
+
+def get_login_rate_limiter(redis:RedisDep)->LoginRateLimiter:
+    return LoginRateLimiter(redis=redis,limit=5,window_secs=900)
+
+LoginRateLimiterDep = Annotated[LoginRateLimiter,Depends(get_login_rate_limiter)]
