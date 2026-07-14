@@ -6,6 +6,7 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class AccessTokenResponse(BaseModel):
+class TokenPairResponse(BaseModel):
     access_token:str
-    token_type:str
+    refresh_token:str
+    token_type:str="bearer"

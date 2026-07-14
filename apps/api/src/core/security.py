@@ -6,6 +6,7 @@ from uuid import uuid4
 from typing import Any
 from src.settings import settings
 from fastapi.security import OAuth2PasswordBearer
+import hashlib
 
 password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")  #to let swagger know the endpoint where login happens
@@ -28,7 +29,20 @@ def create_access_token(user_id:str)->str:
 
     return jwt.encode(payload,settings.jwt_secret,algorithm="HS256")
 
-def decode_access_token(access_token:str)->dict:
+def create_refresh_token(user_id:str,jti:str,family_id:str,issued_at:datetime,expires_at:datetime)->str:
+    payload={
+        "sub":user_id,
+        "type":"refresh",
+        "iat":issued_at,
+        "exp":expires_at,
+        "jti":jti,
+        "family_id":family_id
+    }
+    return  jwt.encode(payload,settings.jwt_secret,algorithm="HS256")
+
+def decode_token(access_token:str)->dict:
     return jwt.decode(access_token,settings.jwt_secret,algorithms=["HS256"])
 
+def hash_token(token:str)->str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 

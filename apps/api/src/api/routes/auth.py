@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException, status, Depends,Request
 from pymongo.errors import DuplicateKeyError
 from src.api.deps import AuthServiceDep,LoginRateLimiterDep
-from src.core.security import create_access_token
 from src.models.user import UserResponse, UserCreate
-from src.models.auth import AccessTokenResponse,LoginRequest
+from src.models.auth import TokenPairResponse,LoginRequest
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.services.rate_limit import build_login_failure_key
@@ -18,8 +17,8 @@ async def register(user_data:UserCreate,auth_service:AuthServiceDep)->UserRespon
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Email already registered") from e
 
 
-@router.post("/login", response_model=AccessTokenResponse)
-async def login(cred: LoginRequest, auth_service: AuthServiceDep,limiter:LoginRateLimiterDep,request:Request) -> AccessTokenResponse:
+@router.post("/login", response_model=TokenPairResponse)
+async def login(cred: LoginRequest, auth_service: AuthServiceDep,limiter:LoginRateLimiterDep,request:Request) -> TokenPairResponse:
     client_ip = request.client.host if request.client else "unknown"
     key = build_login_failure_key(client_ip,str(cred.email))
 
@@ -28,7 +27,6 @@ async def login(cred: LoginRequest, auth_service: AuthServiceDep,limiter:LoginRa
 
 
     user = await auth_service.authenticate(cred)
-    print(user)
 
     if not user:
         await limiter.record_failure(key)
@@ -36,8 +34,8 @@ async def login(cred: LoginRequest, auth_service: AuthServiceDep,limiter:LoginRa
                             headers={"WWW-Authenticate": "Bearer"})
 
     await limiter.clear(key)
-    access_token = create_access_token(user_id=str(user["_id"]))
-    return AccessTokenResponse(access_token=access_token, token_type="bearer")
+    access_token,refresh_token = (await auth_service.issue_token_pair(user_id=str(user["_id"])))
+    return TokenPairResponse(access_token=access_token,refresh_token=refresh_token, token_type="bearer")
 
 # @router.post("/login", response_model=AccessTokenResponse)
 # async def login(form_data: OAuth2PasswordRequestForm = Depends(),auth_service: AuthServiceDep = None):
