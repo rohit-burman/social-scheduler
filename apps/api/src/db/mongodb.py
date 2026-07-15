@@ -8,7 +8,7 @@ db : AsyncDatabase | None = None
 async def connect_to_db()-> None:
     global client
     global db
-    client = AsyncMongoClient(settings.mongodb_url)
+    client = AsyncMongoClient(settings.mongodb_url,tz_aware=True)
     await client.admin.command("ping")
     db = client[settings.mongodb_db_name]
     # await create_indexes(db)

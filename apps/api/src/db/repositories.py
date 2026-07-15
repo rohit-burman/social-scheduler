@@ -86,3 +86,30 @@ class RefreshSessionRepository:
             }
         )
         return res.modified_count
+
+    async def rotate(self,old_jti:str,new_doc:dict[str,Any],used_at:datetime)->bool:
+        client = self.collection.database.client
+        rotated=False
+        async def callback(session)->bool:
+            old_session = await self.collection.find_one_and_update(
+                {
+                    'jti': old_jti,
+                    'revoked_at': None,
+                    'used_at': None,
+                    'expires_at': {'$gt': used_at}
+                },
+                {
+                    "$set": {
+                        'used_at': used_at,
+                        'replaced_by_jti': new_doc["jti"],
+                    }
+                },
+                session=session
+            )
+            if old_session is None:
+                return False
+            await self.collection.insert_one(new_doc, session=session)
+            return True
+
+        async with client.start_session() as s:
+            return await s.with_transaction(callback)

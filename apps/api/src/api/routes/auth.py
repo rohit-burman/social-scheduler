@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, status, Depends,Request
 from pymongo.errors import DuplicateKeyError
 from src.api.deps import AuthServiceDep,LoginRateLimiterDep
+from src.exceptions import InvalidRefreshTokenError, RefreshTokenReuseError
 from src.models.user import UserResponse, UserCreate
-from src.models.auth import TokenPairResponse,LoginRequest
+from src.models.auth import TokenPairResponse, LoginRequest, RefreshRequest
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.services.rate_limit import build_login_failure_key
@@ -36,6 +37,15 @@ async def login(cred: LoginRequest, auth_service: AuthServiceDep,limiter:LoginRa
     await limiter.clear(key)
     access_token,refresh_token = (await auth_service.issue_token_pair(user_id=str(user["_id"])))
     return TokenPairResponse(access_token=access_token,refresh_token=refresh_token, token_type="bearer")
+
+@router.post("/refresh",response_model=TokenPairResponse)
+async def refresh(request_data:RefreshRequest,auth_service:AuthServiceDep)->TokenPairResponse:
+    try:
+        access_token,refresh_token =( await auth_service.rotate_refresh_token(request_data.refresh_token))
+    except (InvalidRefreshTokenError,RefreshTokenReuseError) as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid refresh token") from e
+
+    return TokenPairResponse(access_token=access_token,refresh_token=refresh_token)
 
 # @router.post("/login", response_model=AccessTokenResponse)
 # async def login(form_data: OAuth2PasswordRequestForm = Depends(),auth_service: AuthServiceDep = None):
