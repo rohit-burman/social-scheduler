@@ -4,3 +4,6 @@ class InvalidRefreshTokenError(Exception):
 
 class RefreshTokenReuseError(Exception):
     pass
+
+class WorkspaceCreationError(Exception):
+    pass
