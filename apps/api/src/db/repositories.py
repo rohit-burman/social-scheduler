@@ -96,34 +96,31 @@ class RefreshSessionRepository:
 
 
 class WorkspaceRepository:
-    def __init__(self, db: AsyncDatabase):
+    def __init__(self, db):
         self.collection = db["workspaces"]
 
-    async def create(self, document: dict[str, Any],session:AsyncClientSession|None =None) -> str:
-        res = await self.collection.insert_one(document,session=session)
+    def create(self, document: dict[str, Any], session=None) -> str:
+        res = self.collection.insert_one(document, session=session)
         return str(res.inserted_id)
 
-    async def get_by_id(self, workspace_id: str) -> dict[str, Any] | None:
+    def get_by_id(self, workspace_id: str) -> dict[str, Any] | None:
         if not ObjectId.is_valid(workspace_id): return None
-        return await self.collection.find_one({'_id': ObjectId(workspace_id)})
+        return self.collection.find_one({'_id': ObjectId(workspace_id)})
 
-    # async def get_by_ids(self,workspace_ids: list[ObjectId]) -> list[dict[str, Any]]:
-    #     pass
+    def get_by_slug(self, slug: str) -> dict[str, Any] | None:
+        return self.collection.find_one({'slug': slug})
 
-    async def get_by_slug(self, slug: str) -> dict[str, Any] | None:
-        return await self.collection.find_one({'slug': slug})
-
-    async def delete(self, workspace_id: str) -> bool:
+    def delete(self, workspace_id: str) -> bool:
         if not ObjectId.is_valid(workspace_id):
             return False
-        res = await self.collection.delete_one({'_id': ObjectId(workspace_id)})
+        res = self.collection.delete_one({'_id': ObjectId(workspace_id)})
         if res.deleted_count < 1:
             return False
         else:
             return True
 
-    async def update_name(self, workspace_id: str, new_name: str) -> bool:
-        res = await self.collection.update_one(
+    def update_name(self, workspace_id: str, new_name: str) -> bool:
+        res = self.collection.update_one(
             {
                 '_id': ObjectId(workspace_id)
             },
@@ -137,27 +134,44 @@ class WorkspaceRepository:
 
 
 class WorkspaceMemberRepository:
-    def __init__(self, db: AsyncDatabase) -> None:
+    def __init__(self, db) -> None:
         self.collection = db['workspace_members']
 
-    async def create(self, document: dict[str, Any],session:AsyncClientSession|None=None) -> str:
-        res = await self.collection.insert_one(document,session=session)
+    def create(self, document: dict[str, Any], session=None) -> str:
+        res = self.collection.insert_one(document, session=session)
         return str(res.inserted_id)
 
-    async def get_membership(self, workspace_id: str, user_id: str) -> dict[str, Any] | None:
+    def get_membership(self, workspace_id: str, user_id: str) -> dict[str, Any] | None:
         if not ObjectId.is_valid(workspace_id) or not ObjectId.is_valid(user_id):
             return None
-        return await self.collection.find_one({
+        return self.collection.find_one({
             'workspace_id': ObjectId(workspace_id),
             'user_id': ObjectId(user_id)
         })
 
-    async def list_by_user(self, user_id: str) -> list[dict[str, Any]]:
+    def get_membership_by_user(self, user_id: str) -> dict[str, Any] | None:
+        if not ObjectId.is_valid(user_id):
+            return None
+        return self.collection.find_one({
+            'user_id': ObjectId(user_id)
+        })
+
+    def list_by_user(self, user_id: str) -> list[dict[str, Any]]:
         if not ObjectId.is_valid(user_id):
             return []
 
-        res = await self.collection.find({
+        res = list(self.collection.find({
             'user_id': ObjectId(user_id)
-        }).to_list()
+        }))
+
+        return res
+
+    def list_by_workspace(self, workspace_id: str) -> list[dict[str, Any]]:
+        if not ObjectId.is_valid(workspace_id):
+            return []
+
+        res = list(self.collection.find({
+            'workspace_id': ObjectId(workspace_id)
+        }))
 
         return res

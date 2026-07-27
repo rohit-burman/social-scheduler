@@ -40,3 +40,13 @@ async def create_indexes(db :AsyncDatabase)->None:
         unique=True,
         name="workspace_id_user_id"
     )
+
+    await db["posts"].create_index(
+        keys=[("workspace_id",ASCENDING),("status",ASCENDING)],
+        name="workspace_status"
+    )
+
+    await db["posts"].create_index(
+        keys=[("workspace_id",ASCENDING),("provider_type",ASCENDING)],
+        name="workspace_provider"
+    )
